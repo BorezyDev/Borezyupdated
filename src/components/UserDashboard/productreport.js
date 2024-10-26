@@ -45,9 +45,9 @@ const ProductReport = () => {
               productType: productData.type,
               pickupDate: bookingData.pickupDate ? bookingData.pickupDate.toDate() : null,
               quantity: bookingData.quantity || 0,
-              price: parseFloat(bookingData.price) || 0, // Ensure price is a number
-              deposit: parseFloat(bookingData.deposit) || 0, // Ensure deposit is a number
-              totalCost: parseFloat(bookingData.totalCost) || 0, // Ensure totalCost is a number
+              price: parseFloat(bookingData.price) || 0,
+              deposit: parseFloat(bookingData.deposit) || 0,
+              totalCost: parseFloat(bookingData.totalCost) || 0,
               bookingId: bookingDoc.id,
             });
           });
@@ -83,10 +83,10 @@ const ProductReport = () => {
 
           bookingsSnapshot.forEach((bookingDoc) => {
             const bookingData = bookingDoc.data();
-            totalQuantity += (bookingData.quantity || 0);
+            totalQuantity += bookingData.quantity || 0;
             totalBooked += 1;
             totalPrice += (parseFloat(bookingData.price) || 0) * (bookingData.quantity || 0);
-            totalDeposit += (parseFloat(bookingData.deposit) || 0);
+            totalDeposit += parseFloat(bookingData.deposit) || 0;
           });
 
           productReport.push({
@@ -110,6 +110,7 @@ const ProductReport = () => {
   const filteredProductReportData = productReportData.filter((product) => {
     const productName = product.productName ? product.productName.toLowerCase() : '';
     const productId = product.productId ? product.productId.toLowerCase() : '';
+
     return productName.includes(productSearchTerm.toLowerCase()) || productId.includes(productSearchTerm.toLowerCase());
   });
 
@@ -131,7 +132,7 @@ const ProductReport = () => {
 
       return isWithinDateRange && matchesSearchTerm;
     })
-    .sort((a, b) => new Date(b.pickupDate) - new Date(a.pickupDate)); // Sort recent to old
+    .sort((a, b) => new Date(b.pickupDate) - new Date(a.pickupDate));
 
   const totalEntries = filteredSalesData.length;
   const totalSalesAmount = filteredSalesData.reduce((total, sale) => total + sale.totalCost, 0);
@@ -159,16 +160,16 @@ const ProductReport = () => {
         sale.productName,
         sale.pickupDate?.toDateString() || '',
         sale.quantity,
-        parseFloat(sale.price).toFixed(2), // Ensure price is a number
-        parseFloat(sale.deposit).toFixed(2),
+        sale.price ? sale.price.toFixed(2) : '0.00',
+        sale.deposit ? sale.deposit.toFixed(2) : '0.00',
       ];
-      
       csvRows.push(row.join(','));
     });
 
     const csvString = csvRows.join('\n');
     const blob = new Blob([csvString], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
+
     const a = document.createElement('a');
     a.href = url;
     a.download = 'sales_report.csv';
@@ -184,32 +185,33 @@ const ProductReport = () => {
       </button>
 
       <h3>Most Rented Products</h3>
-      <table className="sales-table">
-        <thead>
-          <tr>
-            <th>SR.No</th>
-            <th>Product Code</th>
-            <th>Product Name</th>
-            <th>Total Booked</th>
-          </tr>
-        </thead>
-        <tbody>
-          {mostRentedProducts.length === 0 ? (
-            <tr>
-              <td colSpan="4">No product data found</td>
-            </tr>
-          ) : (
-            mostRentedProducts.map((product, index) => (
-              <tr key={index}>
-                <td>{index + 1}</td>
-                <td>{product.productId}</td>
-                <td>{product.productName}</td>
-                <td>{product.totalBooked}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+<table className="sales-table">
+  <thead>
+    <tr>
+      <th>SR.No</th>
+      <th>Product Code</th>
+      <th>Product Name</th>
+      <th>Total Booked</th>
+    </tr>
+  </thead>
+  <tbody>
+    {mostRentedProducts.length === 0 ? (
+      <tr>
+        <td colSpan="4">No product data found</td>
+      </tr>
+    ) : (
+      mostRentedProducts.slice(0, 5).map((product, index) => (
+        <tr key={index}>
+          <td>{index + 1}</td>
+          <td>{product.productId}</td>
+          <td>{product.productName}</td>
+          <td>{product.totalBooked}</td>
+        </tr>
+      ))
+    )}
+  </tbody>
+</table>
+
       <hr className="table-divider" />
 
       <h3>Never Rented Products</h3>
@@ -219,13 +221,12 @@ const ProductReport = () => {
             <th>SR.No</th>
             <th>Product Code</th>
             <th>Product Name</th>
-            <th>Brand Name</th>
           </tr>
         </thead>
         <tbody>
           {neverRentedProducts.length === 0 ? (
             <tr>
-              <td colSpan="4">No product data found</td>
+              <td colSpan="3">No product data found</td>
             </tr>
           ) : (
             neverRentedProducts.map((product, index) => (
@@ -233,7 +234,6 @@ const ProductReport = () => {
                 <td>{index + 1}</td>
                 <td>{product.productId}</td>
                 <td>{product.productName}</td>
-                <td>{product.brandName}</td>
               </tr>
             ))
           )}
@@ -241,77 +241,141 @@ const ProductReport = () => {
       </table>
       <hr className="table-divider" />
 
-      <h3>Sales Data</h3>
-      <input
-        type="text"
-        placeholder="Search..."
-        value={salesSearchTerm}
-        onChange={(e) => setSalesSearchTerm(e.target.value)}
-      />
-      <div>
-        <label>Start Date:</label>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-        />
-        <label>End Date:</label>
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-        />
+      <h3>Daily Sales</h3>
+      <div className="sales-filters">
+        <div className="date-filters">
+          <label htmlFor="startDate">Start Date:</label>
+          <input
+            type="date"
+            id="startDate"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <label htmlFor="endDate">End Date:</label>
+          <input
+            type="date"
+            id="endDate"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
+        <div className="search-filters">
+          <input
+            type="text"
+            placeholder="Search Sales"
+            value={salesSearchTerm}
+            onChange={(e) => setSalesSearchTerm(e.target.value)}
+          />
+          <button onClick={exportSalesData}>Export Sales Data</button>
+        </div>
       </div>
 
       <table className="sales-table">
+  <thead>
+    <tr>
+      <th>Sr.No</th>
+      <th>Product Code</th>
+      <th>Product Name</th>
+      <th>Pickup Date</th>
+      <th>Quantity</th>
+      <th>Price</th>
+      <th>Deposit</th>
+    </tr>
+  </thead>
+  <tbody>
+    {filteredSalesData.length === 0 ? (
+      <tr>
+        <td colSpan="7">No sales data found</td>
+      </tr>
+    ) : (
+      filteredSalesData
+        .slice(indexOfFirstEntry, indexOfLastEntry)
+        .map((sale, index) => (
+          <tr key={index}>
+            <td>{index + 1}</td>
+            <td>{sale.productId}</td>
+            <td>{sale.productName}</td>
+            <td>{sale.pickupDate?.toDateString() || ''}</td>
+            <td>{sale.quantity}</td>
+            <td>{sale.price.toFixed(2)}</td>
+            <td>{sale.deposit.toFixed(2)}</td>
+          </tr>
+        ))
+    )}
+    
+    {/* Total Row */}
+    {filteredSalesData.length > 0 && (
+      <tr className="total-row">
+        <td colSpan="4" style={{ textAlign: 'right' }}>Total:</td>
+        <td>
+          {filteredSalesData.reduce((total, sale) => total + sale.quantity, 0)}
+        </td>
+        <td>
+          {filteredSalesData.reduce((total, sale) => total + sale.price, 0).toFixed(2)}
+        </td>
+        <td>
+          {filteredSalesData.reduce((total, sale) => total + sale.deposit, 0).toFixed(2)}
+        </td>
+      </tr>
+    )}
+  </tbody>
+</table>
+<div className="pagination">
+  {Array.from({ length: totalPages }, (_, index) => (
+    <button
+      key={index}
+      onClick={() => setCurrentPage(index + 1)}
+      className={currentPage === index + 1 ? 'active' : ''}
+    >
+      {index + 1}
+    </button>
+  ))}
+</div>
+
+<hr className="table-divider" />
+      <h3>Total Product Report</h3>
+      <div className="search-filters">
+          <input
+            type="text"
+            placeholder="Search"
+            value={salesSearchTerm}
+            onChange={(e) => setSalesSearchTerm(e.target.value)}
+          />
+        </div>
+      <table className="sales-table">
         <thead>
           <tr>
+            <th>Sr.No</th>
             <th>Product Code</th>
             <th>Product Name</th>
-            <th>Pickup Date</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Deposit</th>
-            <th>Total</th>
+            <th>Brand Name</th>
+            <th>Total Booked</th>
+            <th>Total Quantity</th>
+            <th>Total Price</th>
+            <th>Total Deposit</th>
           </tr>
         </thead>
         <tbody>
-          {filteredSalesData.length === 0 ? (
+          {filteredProductReportData.length === 0 ? (
             <tr>
-              <td colSpan="7">No sales data found</td>
+              <td colSpan="6">No product report data found</td>
             </tr>
           ) : (
-            filteredSalesData.slice(indexOfFirstEntry, indexOfLastEntry).map((sale, index) => (
+            filteredProductReportData.map((product, index) => (
               <tr key={index}>
-                <td>{sale.productId}</td>
-                <td>{sale.productName}</td>
-                <td>{sale.pickupDate?.toDateString() || ''}</td>
-                <td>{sale.quantity}</td>
-                <td>{parseFloat(sale.price).toFixed(2)}</td>
-                <td>{parseFloat(sale.deposit).toFixed(2)}</td>
-                <td>{parseFloat(sale.totalCost).toFixed(2)}</td>
+                <td>{index + 1}</td>
+                <td>{product.productId}</td>
+                <td>{product.productName}</td>
+                <td>{product.brandName}</td>
+                <td>{product.totalBooked}</td>
+                <td>{product.totalQuantity}</td>
+                <td>{product.totalPrice.toFixed(2)}</td>
+                <td>{product.totalDeposit.toFixed(2)}</td>
               </tr>
             ))
           )}
         </tbody>
       </table>
-
-      <div className="pagination">
-        <button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1}>
-          Previous
-        </button>
-        <span>{currentPage} of {totalPages}</span>
-        <button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>
-          Next
-        </button>
-      </div>
-
-      <div className="totals">
-        <h4>Total Entries: {totalEntries}</h4>
-        <h4>Total Sales Amount: {totalSalesAmount.toFixed(2)}</h4>
-        <h4>Total Rent Amount: {totalRentAmount.toFixed(2)}</h4>
-        <button onClick={exportSalesData}>Export Sales Data</button>
-      </div>
     </div>
   );
 };

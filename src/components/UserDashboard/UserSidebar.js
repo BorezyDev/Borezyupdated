@@ -1,12 +1,15 @@
 import React from 'react';
 import { Link, useLocation , useNavigate } from 'react-router-dom';
 import './UseSidebar.css';
-import { FaCalendarCheck, FaUsers, FaUser, FaPlusSquare, FaBoxOpen, FaRegFileAlt, FaMicrosoft, FaGift ,  } from 'react-icons/fa';
- import user from '../../assets/user.png';
+import { FaCalendarCheck, FaUsers, FaUser, FaPlusSquare, FaBoxOpen, FaRegFileAlt, FaMicrosoft, FaGift ,FaSignOutAlt  } from 'react-icons/fa';
+
+ import { useUser } from '../Auth/UserContext'; // Import the context
+
 const UserSidebar = ({ isOpen }) => {
   const location = useLocation();
 
   const navigate = useNavigate();
+  const { userData } = useUser(); // Access userData from the context
 
   const handleLogout = () => {
     // Clear local storage and session storage
@@ -21,8 +24,8 @@ const UserSidebar = ({ isOpen }) => {
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
       <nav>
         <ul>
-          <li className="sidebar-greeting1">Welcome User,</li>
-          <li className="sidebar-greeting">Leads</li>
+          <li className="sidebar-greeting1">Welcome,</li>
+          <li className="sidebar-greeting">{userData.name}</li>
 
           <li className={`sidebar-link ${location.pathname === '/usersidebar/billing' ? 'active' : ''}`}>
             <Link to="/usersidebar/billing" style={{ display: 'flex', alignItems: 'center' }}>
@@ -66,8 +69,8 @@ const UserSidebar = ({ isOpen }) => {
             </Link>
           </li>
           <li className="sidebar-link logout-button">
-            <button onClick={handleLogout} className="logout-btn">
-              <img src={user} alt="Logout" className="icon" /> Logout
+            < button Click={handleLogout} style={{ display: 'flex', alignItems: 'center' }}>
+            <FaSignOutAlt style={{ fontSize: '15px', color: '#757575', marginRight: '20px' }} /> Logout
             </button>
           </li>
 
